@@ -104,6 +104,16 @@
     const log = (m) => { $('log').textContent += m + '\n'; };
     const setStatus = (html, cls) => { $('status').innerHTML = html; $('status').className = 'status ' + (cls || ''); };
     const fmt = (minor, ccy) => (minor / 100).toLocaleString(undefined, { style: 'currency', currency: ccy });
+    const loadScript = (src) => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+
+    async function verify(resp) {
+      setStatus('Verifying payment…');
+      const v = await fetch('/verify-payment', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(resp),
+      }).then((r) => r.json()).catch(() => ({ verified: false }));
+      setStatus(v.verified ? '🎉 Payment confirmed — thank you!' : '⚠️ Captured, but verification failed.', v.verified ? 'ok' : 'err');
+      log('payment_id: ' + (resp.razorpay_payment_id || ''));
+    }
 
     async function init() {
       let order;
@@ -116,38 +126,49 @@
       $('amount').textContent = fmt(order.amount, order.currency);
       $('lineprice').textContent = fmt(order.amount, order.currency);
 
-      const razorpay = new Razorpay({
-        key: order.key_id,
-        order_id: order.id,
-        contact: '9123456789',        // TODO: use the signed-in user's details in production
-        email: 'buyer@example.com',
-        handler: () => {},
-      });
-
+      // 1) Preferred: express Apple Pay button (Custom Checkout). Needs the
+      //    account to have Custom Checkout enabled — i.e. canMakePayment present.
+      const custom = new Razorpay({ key: order.key_id, order_id: order.id, contact: '9123456789', email: 'buyer@example.com', handler: () => {} });
       let available = false, reason = '';
-      try {
-        ({ available, reason } = await razorpay.canMakePayment({ method: 'card', app: { name: 'apple_pay' } }));
-      } catch (e) { reason = e?.message || String(e); }
+      if (typeof custom.canMakePayment === 'function') {
+        try { ({ available, reason } = await custom.canMakePayment({ method: 'card', app: { name: 'apple_pay' } })); }
+        catch (e) { reason = e?.message || String(e); }
+      } else {
+        reason = 'Custom Checkout not enabled on this account';
+      }
 
-      if (!available) {
-        setStatus('Open in <b>Safari</b> on an <b>Apple device</b> signed into iCloud, with a <b>non-Indian card</b> in Apple Wallet, to pay with Apple Pay.', '');
-        log('canMakePayment → not available. reason: ' + reason);
+      if (available) {
+        $('skeleton')?.remove();
+        setStatus('Tap to pay securely with Apple Pay.', 'ok');
+        custom.mount({ method: 'card', app: { name: 'apple_pay' }, container: $('pay'), theme: { buttonTheme: 'dark' } });
+        custom.on('payment.success', verify);
+        custom.on('payment.error', (e) => { setStatus('Payment didn’t go through — please try again.', 'err'); log('error: ' + JSON.stringify(e?.error || e)); });
         return;
       }
 
+      // 2) Fallback: Standard Checkout (works without Custom Checkout). Apple Pay
+      //    appears INSIDE the Razorpay window for eligible Safari users.
+      log('express button unavailable → Standard Checkout fallback. reason: ' + reason);
+      await loadScript('https://checkout.razorpay.com/v1/checkout.js'); // overrides window.Razorpay with Standard Checkout
       $('skeleton')?.remove();
-      setStatus('Tap to pay securely with Apple Pay.', 'ok');
-      razorpay.mount({ method: 'card', app: { name: 'apple_pay' }, container: $('pay'), theme: { buttonTheme: 'dark' } });
-
-      razorpay.on('payment.success', async (resp) => {
-        setStatus('Verifying payment…');
-        const v = await fetch('/verify-payment', {
-          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(resp),
-        }).then((r) => r.json()).catch(() => ({ verified: false }));
-        setStatus(v.verified ? '🎉 Payment confirmed — thank you!' : '⚠️ Captured, but verification failed.', v.verified ? 'ok' : 'err');
-        log('payment_id: ' + resp.razorpay_payment_id);
-      });
-      razorpay.on('payment.error', (e) => { setStatus('Payment didn’t go through — please try again.', 'err'); log('error: ' + JSON.stringify(e?.error || e)); });
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.style.width = '100%';
+      btn.textContent = 'Pay ' + fmt(order.amount, order.currency);
+      $('pay').appendChild(btn);
+      setStatus('Tap Pay — on Safari, Apple Pay appears inside the Razorpay window.', '');
+      btn.onclick = () => {
+        const rzp = new window.Razorpay({
+          key: order.key_id,
+          order_id: order.id,
+          name: 'CareCompass',
+          description: 'Care Tour Planning Course',
+          prefill: { email: 'buyer@example.com', contact: '9123456789' },
+          handler: verify,
+        });
+        rzp.on('payment.failed', (e) => { setStatus('Payment didn’t go through — please try again.', 'err'); log('error: ' + JSON.stringify(e?.error || e)); });
+        rzp.open();
+      };
     }
     init();
   </script>
