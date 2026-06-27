@@ -140,15 +140,19 @@
           description: 'Care Tour Planning Course',
           prefill: { email: 'buyer@example.com', contact: '9123456789' },
           theme: { color: '#0d9488' },
-          // Show ONLY card + Apple Pay; hide UPI / netbanking / wallets / pay-later.
-          // Apple Pay rides on the card rail and surfaces at the top for eligible Safari users.
+          // Hide everything EXCEPT card so the checkout isn't wrapped in a
+          // collapsible "Cards" block. Apple Pay rides on the card rail and then
+          // shows at the TOP of the first screen for eligible Safari users.
           config: {
             display: {
-              blocks: {
-                applepay: { name: 'Pay with Apple Pay or card', instruments: [{ method: 'card' }] },
-              },
-              sequence: ['block.applepay'],
-              preferences: { show_default_blocks: false },
+              hide: [
+                { method: 'upi' },
+                { method: 'netbanking' },
+                { method: 'wallet' },
+                { method: 'paylater' },
+                { method: 'emi' },
+                { method: 'cardless_emi' },
+              ],
             },
           },
           handler: verify,
