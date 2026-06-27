@@ -62,13 +62,19 @@ git push -u origin main
   (Don't set `PORT` — Railway injects it; the server already reads `process.env.PORT`.)
 
 ## 4) Point the subdomain at Railway
-- Railway → service → **Settings → Networking → Custom Domain** → add `pay.carecompass.me`.
-  Railway gives you a **CNAME target** (e.g. `…up.railway.app`).
-- At your registrar, add: **CNAME** `pay` → `<railway target>`.
-- HTTPS is auto-provisioned once the CNAME resolves (minutes).
+- Railway → service → **Settings → Public Networking → + Custom Domain** → add `pay.carecompass.me`.
+  Railway shows you **TWO records**, both unique to your domain:
+  - a **CNAME** → a `…up.railway.app` target, and
+  - a **TXT** ownership-verification record.
+- At your registrar, add **both**. ⚠️ With only the CNAME, the domain stays unverified and returns 404 — the TXT is required.
+- HTTPS (Let's Encrypt) auto-provisions once DNS resolves — usually within an hour.
+- **Apex note:** if you ever use the bare `carecompass.me` instead of a subdomain, Railway gives no fixed IP for an A record — you need CNAME-flattening/ALIAS (Cloudflare, DNSimple, Namecheap) or delegate nameservers to Cloudflare. This is why the subdomain is easier.
 
 ## 5) Verify the domain in Razorpay
 Apple Pay tab → add/verify **`pay.carecompass.me`** → **Verify domains**. The `.well-known` route makes this pass.
+
+### (Optional) Disconnect the old Replit domain
+If you're moving `carecompass.me` (or a sub) off Replit: Replit → app → **Deployments → Settings → Unlink domain** (this does **not** delete the deployment — it reverts to the `*.replit.app` URL). Then delete the old **A record** and the **`replit-verify=…` TXT** record at your registrar so they don't conflict. (Using a *new* subdomain like `pay.` for Railway means you don't have to touch Replit at all.)
 
 ## 6) Test
 Open **`https://pay.carecompass.me`** in **Safari** on a Mac/iPhone with a **non-Indian card** in Apple Wallet → tap the Apple Pay button.
