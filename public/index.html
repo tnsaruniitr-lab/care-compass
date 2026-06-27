@@ -3,241 +3,105 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CareCompass · Secure checkout</title>
+  <title>CareCompass — Personalized care tour plans</title>
+  <meta name="description" content="CareCompass creates personalized care tour plans — structured, expert-reviewed plans that map out the visits, providers and logistics for a loved one's care journey." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Custom Checkout SDK (razorpay.js) — NOT the Standard Checkout checkout.js -->
-  <script src="https://checkout.razorpay.com/v1/razorpay.js"></script>
-  <style>
-    :root {
-      --teal: #0d9488;
-      --teal-600: #0f766e;
-      --ink: #0f172a;
-      --muted: #64748b;
-      --line: #e6edf3;
-      --bg-1: #f0fdfa;
-      --bg-2: #eef2ff;
-      --ok: #0f766e;
-      --err: #b91c1c;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(1100px 600px at 8% -8%, #ccfbf1 0%, transparent 55%),
-        radial-gradient(1000px 700px at 100% 0%, #e0e7ff 0%, transparent 50%),
-        linear-gradient(160deg, var(--bg-1), var(--bg-2));
-      min-height: 100%;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .wrap { width: min(420px, 100%); }
-
-    .brand {
-      display: flex; align-items: center; gap: 10px;
-      justify-content: center; margin-bottom: 18px;
-    }
-    .brand .mark {
-      width: 34px; height: 34px; border-radius: 10px;
-      background: linear-gradient(135deg, var(--teal), #22d3ee);
-      display: grid; place-items: center;
-      box-shadow: 0 6px 16px rgba(13,148,136,.35);
-    }
-    .brand .wordmark { font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
-    .brand .wordmark span { color: var(--teal-600); }
-
-    .card {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 26px 24px 22px;
-      box-shadow: 0 24px 60px -28px rgba(15,23,42,.30), 0 2px 6px rgba(15,23,42,.04);
-    }
-    .eyebrow {
-      margin: 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: .08em;
-      text-transform: uppercase; color: var(--teal-600);
-      display: flex; align-items: center; gap: 7px;
-    }
-    .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px rgba(13,148,136,.15); }
-
-    .item { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .item-name { font-weight: 600; font-size: 15.5px; }
-    .item-desc { color: var(--muted); font-size: 13px; margin-top: 3px; }
-    .item-price { font-weight: 600; font-size: 15.5px; white-space: nowrap; }
-
-    .divider { height: 1px; background: var(--line); margin: 18px 0; }
-
-    .total { display: flex; align-items: baseline; justify-content: space-between; }
-    .total .label { color: var(--muted); font-size: 14px; font-weight: 500; }
-    .total .amount { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
-
-    .pay { margin-top: 22px; min-height: 50px; display: flex; justify-content: center; }
-    /* Visual stand-in so the layout reads correctly before the real Apple Pay
-       button mounts. The real button (Razorpay mount) replaces this in Safari. */
-    .applepay-skeleton {
-      width: 100%; height: 50px; border-radius: 12px;
-      background: #000; color: #fff; border: 0;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      font-size: 17px; font-weight: 600; opacity: .55;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .applepay-skeleton svg { height: 20px; width: auto; }
-
-    .status {
-      margin: 16px 2px 0; font-size: 13px; line-height: 1.5; color: var(--muted);
-      text-align: center;
-    }
-    .status.ok { color: var(--ok); font-weight: 500; }
-    .status.err { color: var(--err); }
-    .status b { color: var(--ink); }
-
-    .trust {
-      margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line);
-      display: flex; align-items: center; justify-content: center; gap: 7px;
-      color: var(--muted); font-size: 12px;
-    }
-    .trust svg { width: 13px; height: 13px; }
-
-    #log {
-      margin: 12px 2px 0; padding: 10px 12px; background: #0b1220; color: #9aa4b2;
-      border-radius: 10px; font-size: 11px; white-space: pre-wrap; line-height: 1.5;
-      max-height: 130px; overflow: auto;
-    }
-    #log:empty { display: none; }
-
-    .foot { text-align: center; margin-top: 14px; color: #94a3b8; font-size: 11.5px; }
-  </style>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="wrap">
-    <div class="brand">
-      <div class="mark" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <polygon points="15.5 8.5 11 11 8.5 15.5 13 13" fill="#fff" stroke="none" />
-        </svg>
-      </div>
-      <div class="wordmark">Care<span>Compass</span></div>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">
+        <span class="mark" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 11 11 8.5 15.5 13 13" fill="#fff" stroke="none"/></svg>
+        </span>
+        Care<span>Compass</span>
+      </a>
+      <nav class="nav">
+        <a href="/#how">How it works</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/contact.html">Contact</a>
+        <a class="btn" href="/checkout.html">Get your plan</a>
+      </nav>
     </div>
+  </header>
 
-    <div class="card">
-      <p class="eyebrow"><span class="dot"></span> Secure checkout</p>
+  <section class="hero">
+    <div class="wrap">
+      <span class="eyebrow"><span class="dot"></span> Care planning, made clear</span>
+      <h1>Personalized care tour plans for the people you love</h1>
+      <p class="lead">CareCompass builds a structured, expert-reviewed plan that maps out the visits, providers and logistics of a loved one's care journey — so you always know the next step.</p>
+      <div class="cta">
+        <a class="btn" href="/checkout.html">Get your care tour plan</a>
+        <a class="btn ghost" href="/#how">See how it works</a>
+      </div>
+    </div>
+  </section>
 
-      <div class="item">
-        <div>
-          <div class="item-name">Care plan consultation</div>
-          <div class="item-desc">One-time · instant access</div>
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p>Three simple steps from "where do we even start" to a plan you can act on.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <h3>Tell us about the care need</h3>
+          <p>Share the situation, the goals, and any constraints — location, budget, schedule and preferences.</p>
         </div>
-        <div class="item-price" id="lineprice">$2.00</div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="total">
-        <span class="label">Total due today</span>
-        <span class="amount" id="amount">$2.00</span>
-      </div>
-
-      <div class="pay" id="pay">
-        <button class="applepay-skeleton" id="skeleton" disabled aria-hidden="true">
-          Pay with
-          <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.05 12.04c-.02-2.05 1.68-3.04 1.76-3.09-.96-1.4-2.46-1.6-2.99-1.62-1.27-.13-2.48.75-3.13.75-.64 0-1.64-.73-2.7-.71-1.39.02-2.67.81-3.39 2.05-1.44 2.5-.37 6.2 1.04 8.23.69.99 1.51 2.1 2.58 2.06 1.04-.04 1.43-.67 2.68-.67 1.25 0 1.6.67 2.69.65 1.11-.02 1.82-1.01 2.5-2.01.79-1.15 1.12-2.26 1.13-2.32-.02-.01-2.17-.83-2.19-3.3zM15.1 6.06c.57-.69.95-1.65.85-2.6-.82.03-1.81.54-2.4 1.23-.53.61-.99 1.59-.86 2.52.91.07 1.84-.46 2.41-1.15z"/></svg>
-          Pay
-        </button>
-      </div>
-
-      <p class="status" id="status">Setting up secure checkout…</p>
-
-      <div class="trust">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Payments secured by Razorpay · Apple Pay
+        <div class="step">
+          <div class="num">2</div>
+          <h3>We build your care tour plan</h3>
+          <p>A personalized plan of visits, providers and logistics, reviewed for clarity and feasibility.</p>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <h3>Receive it online &amp; adjust</h3>
+          <p>Your plan is delivered to your account, ready to act on — with adjustments as needs change.</p>
+        </div>
       </div>
     </div>
+  </section>
 
-    <pre id="log"></pre>
-    <div class="foot">CareCompass · test environment</div>
-  </div>
+  <section class="block alt" id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Simple pricing</h2>
+        <p>One flat fee per personalized care tour plan. No subscriptions, no hidden charges.</p>
+      </div>
+      <div class="price-card">
+        <div class="plan">Care Tour Plan</div>
+        <div class="amount">$49</div>
+        <div class="per">per personalized plan</div>
+        <ul>
+          <li>Personalized, expert-reviewed care plan</li>
+          <li>Visit, provider &amp; logistics schedule</li>
+          <li>Delivered online to your account</li>
+          <li>One round of adjustments included</li>
+        </ul>
+        <a class="btn" href="/checkout.html" style="width:100%">Get started</a>
+      </div>
+    </div>
+  </section>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const log = (m) => { $('log').textContent += m + '\n'; };
-    const setStatus = (html, cls) => { $('status').innerHTML = html; $('status').className = 'status ' + (cls || ''); };
-    const fmt = (minor, ccy) => (minor / 100).toLocaleString(undefined, { style: 'currency', currency: ccy });
-
-    async function init() {
-      // 1) Ask our server for a USD order (Apple Pay only shows for non-INR).
-      let order;
-      try {
-        order = await fetch('/create-order', { method: 'POST' }).then((r) => r.json());
-      } catch {
-        return setStatus('Couldn’t reach the checkout server.', 'err');
-      }
-      if (!order || order.error || !order.id) {
-        return setStatus('Checkout isn’t configured yet — add your <b>live</b> Razorpay keys on the server.', 'err');
-      }
-      $('amount').textContent = fmt(order.amount, order.currency);
-      $('lineprice').textContent = fmt(order.amount, order.currency);
-
-      // 2) Custom Checkout. Passing contact/email here means the buyer is NEVER
-      //    shown a contact form — straight to the Apple Pay sheet.
-      const razorpay = new Razorpay({
-        key: order.key_id,
-        order_id: order.id,
-        contact: '9123456789',        // TODO: use the signed-in user's details in production
-        email: 'buyer@example.com',
-        handler: () => {},
-      });
-
-      // 3) Only render Apple Pay if this device/browser/card can use it.
-      let available = false, reason = '';
-      try {
-        ({ available, reason } = await razorpay.canMakePayment({ method: 'card', app: { name: 'apple_pay' } }));
-      } catch (e) { reason = e?.message || String(e); }
-
-      if (!available) {
-        setStatus(
-          'Open in <b>Safari</b> on an <b>Apple device</b> signed into iCloud, with a ' +
-          '<b>non-Indian card</b> in Apple Wallet, to pay with Apple Pay.', '');
-        log('canMakePayment → not available. reason: ' + reason);
-        return;
-      }
-
-      // 4) Render the real Apple Pay button in place of the skeleton.
-      $('skeleton')?.remove();
-      setStatus('Tap to pay securely with Apple Pay.', 'ok');
-      razorpay.mount({
-        method: 'card',
-        app: { name: 'apple_pay' },
-        container: $('pay'),
-        theme: { buttonTheme: 'dark' },
-      });
-
-      // 5) Verify the signature server-side on success.
-      razorpay.on('payment.success', async (resp) => {
-        setStatus('Verifying payment…');
-        const v = await fetch('/verify-payment', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(resp),
-        }).then((r) => r.json()).catch(() => ({ verified: false }));
-        setStatus(v.verified ? '🎉 Payment confirmed — thank you!' : '⚠️ Captured, but verification failed.', v.verified ? 'ok' : 'err');
-        log('payment_id: ' + resp.razorpay_payment_id);
-      });
-
-      razorpay.on('payment.error', (e) => {
-        setStatus('Payment didn’t go through — please try again.', 'err');
-        log('error: ' + JSON.stringify(e?.error || e));
-      });
-    }
-
-    init();
-  </script>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="entity">
+        <strong>DREAMPORT TECHNOLOGY PRIVATE LIMITED</strong><br />
+        CareCompass is a service operated by DREAMPORT TECHNOLOGY PRIVATE LIMITED.<br />
+        © 2026 DREAMPORT TECHNOLOGY PRIVATE LIMITED. All rights reserved.
+      </div>
+      <div class="links">
+        <a href="/terms.html">Terms</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/refunds.html">Refunds &amp; Cancellation</a>
+        <a href="/delivery.html">Delivery</a>
+        <a href="/contact.html">Contact</a>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
