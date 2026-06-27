@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="site-header">
@@ -74,7 +74,7 @@
       </div>
       <div class="price-card">
         <div class="plan">Care Tour Plan</div>
-        <div class="amount">$49</div>
+        <div class="amount" id="price-amount">$2.00</div>
         <div class="per">per personalized plan</div>
         <ul>
           <li>Personalized, expert-reviewed care plan</li>
@@ -103,5 +103,14 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    // Keep the displayed price in sync with the actual charge (server AMOUNT) —
+    // so the page and the bill can never disagree.
+    fetch('/price').then((r) => r.json()).then(({ amount, currency }) => {
+      document.getElementById('price-amount').textContent =
+        (amount / 100).toLocaleString(undefined, { style: 'currency', currency });
+    }).catch(() => {});
+  </script>
 </body>
 </html>

@@ -87,6 +87,17 @@ Open **`https://pay.carecompass.me`** in **Safari** on a Mac/iPhone with a **non
 3. Page on **HTTPS**, on a **verified domain**.
 4. **Safari + Apple device + non-Indian card** in Wallet.
 
+## Webhook — reliable fulfillment (recommended)
+The browser `payment.success` callback can be lost (user closes the tab). The **authoritative** confirmation is a webhook:
+1. Razorpay Dashboard → **Settings → Webhooks → Add New Webhook**.
+2. **URL** `https://pay.carecompass.me/webhook` · choose a **Secret** · **Events**: `payment.captured`, `order.paid`.
+3. Set that same secret as the Railway Variable **`RZP_WEBHOOK_SECRET`**.
+
+The `/webhook` route verifies the `X-Razorpay-Signature` (HMAC-SHA256 of the **raw** body), de-dupes by `X-Razorpay-Event-Id`, and is where you should **fulfil the order** (grant access / email the plan) — not the browser callback. The client `/verify-payment` stays only for instant on-screen confirmation.
+
+## Pricing — single source of truth
+The displayed price comes from `GET /price` (which reads `AMOUNT`), so the landing page and the actual charge can never drift. Change the price in **one** place: the `AMOUNT` env var (smallest unit — $2 = `200`, $49 = `4900`).
+
 ## Notes
 - This uses the **`mount()`** approach (Razorpay renders the Apple-styled button). The alternative is to
   render your own button and call **`razorpay.createPayment({ order_id, method:'card', app:{name:'apple_pay'} })`**

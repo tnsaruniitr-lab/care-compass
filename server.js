@@ -11,6 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const {
   RZP_KEY_ID,
   RZP_KEY_SECRET,
+  RZP_WEBHOOK_SECRET, // the secret you set when creating the webhook in Razorpay
   PORT = 3000,
   CURRENCY = 'USD', // MUST be non-INR — INR hides Apple Pay
   AMOUNT = '200',   // smallest currency unit; 200 = $2.00
@@ -25,6 +26,37 @@ if (!configured) {
 const razorpay = configured ? new Razorpay({ key_id: RZP_KEY_ID, key_secret: RZP_KEY_SECRET }) : null;
 
 const app = express();
+
+/* ---------------------------------------------------------------------------
+ * Razorpay webhook — the AUTHORITATIVE, reliable confirmation (the browser
+ * callback can be lost if the buyer closes the tab). Must be registered BEFORE
+ * express.json() because signature verification needs the RAW request body.
+ * Set RZP_WEBHOOK_SECRET to the secret you choose when creating the webhook in
+ * Razorpay Dashboard → Settings → Webhooks (events: payment.captured, order.paid).
+ * ------------------------------------------------------------------------- */
+const handledEvents = new Set(); // idempotency — use a DB/Redis in production
+app.post('/webhook', express.raw({ type: '*/*' }), (req, res) => {
+  if (!RZP_WEBHOOK_SECRET) return res.status(503).send('webhook secret not configured');
+
+  const signature = req.headers['x-razorpay-signature'] || '';
+  const expected = crypto.createHmac('sha256', RZP_WEBHOOK_SECRET).update(req.body).digest('hex');
+  const valid = signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  if (!valid) return res.status(400).send('invalid signature');
+
+  const event = JSON.parse(req.body.toString('utf8'));
+  const eventId = req.headers['x-razorpay-event-id'];
+  if (eventId && handledEvents.has(eventId)) return res.json({ ok: true, deduped: true });
+  if (eventId) handledEvents.add(eventId);
+
+  if (event.event === 'payment.captured' || event.event === 'order.paid') {
+    const p = event.payload?.payment?.entity;
+    // ✅ FULFIL HERE — grant access / email the care plan. This is the reliable path.
+    console.log(`✅ ${event.event}: payment ${p?.id}, order ${p?.order_id}, ${p?.amount} ${p?.currency}`);
+  }
+  res.json({ ok: true });
+});
+
 app.use(express.json());
 
 /* ---------------------------------------------------------------------------
@@ -86,6 +118,10 @@ app.post('/verify-payment', (req, res) => {
   const verified = expected === razorpay_signature;
   res.status(verified ? 200 : 400).json({ verified });
 });
+
+// Public pricing — single source of truth so the landing page and the actual
+// charge can never drift apart (both read from AMOUNT).
+app.get('/price', (_req, res) => res.json({ amount: Number(AMOUNT), currency: CURRENCY }));
 
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
