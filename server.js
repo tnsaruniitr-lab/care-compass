@@ -13,7 +13,7 @@ const {
   RZP_KEY_SECRET,
   PORT = 3000,
   CURRENCY = 'USD', // MUST be non-INR — INR hides Apple Pay
-  AMOUNT = '1000',  // smallest currency unit; 1000 = $10.00
+  AMOUNT = '200',   // smallest currency unit; 200 = $2.00
 } = process.env;
 
 const configured = Boolean(RZP_KEY_ID && RZP_KEY_SECRET);
