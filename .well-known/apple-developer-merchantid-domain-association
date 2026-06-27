@@ -1,0 +1,7 @@
+REPLACE THIS PLACEHOLDER FILE.
+
+Download the real "Verification file" from:
+  Razorpay Dashboard → Account & Settings → International payments → Apple Pay → Verification file
+
+Overwrite this file with its EXACT contents (no extra spaces or trailing newline).
+This placeholder intentionally FAILS Apple Pay domain verification until replaced.
