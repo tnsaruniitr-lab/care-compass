@@ -16,11 +16,13 @@ const {
   AMOUNT = '1000',  // smallest currency unit; 1000 = $10.00
 } = process.env;
 
-if (!RZP_KEY_ID || !RZP_KEY_SECRET) {
-  console.warn('⚠️  RZP_KEY_ID / RZP_KEY_SECRET not set — /create-order will fail until you add them (.env or Railway Variables).');
+const configured = Boolean(RZP_KEY_ID && RZP_KEY_SECRET);
+if (!configured) {
+  console.warn('⚠️  RZP_KEY_ID / RZP_KEY_SECRET not set — the server still boots, but /create-order returns 503 until you add them (.env or Railway Variables).');
 }
 
-const razorpay = new Razorpay({ key_id: RZP_KEY_ID, key_secret: RZP_KEY_SECRET });
+// Built lazily so a missing key never crashes boot (the SDK throws on construction).
+const razorpay = configured ? new Razorpay({ key_id: RZP_KEY_ID, key_secret: RZP_KEY_SECRET }) : null;
 
 const app = express();
 app.use(express.json());
@@ -48,6 +50,9 @@ app.get('/.well-known/apple-developer-merchantid-domain-association', (_req, res
  * 2) Create a USD order. The key_secret lives ONLY here, never in the browser.
  * ------------------------------------------------------------------------- */
 app.post('/create-order', async (_req, res) => {
+  if (!razorpay) {
+    return res.status(503).json({ error: 'Razorpay keys not configured on the server' });
+  }
   try {
     const order = await razorpay.orders.create({
       amount: Number(AMOUNT),
@@ -68,6 +73,9 @@ app.post('/create-order', async (_req, res) => {
  * ------------------------------------------------------------------------- */
 app.post('/verify-payment', (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+  if (!configured) {
+    return res.status(503).json({ verified: false, error: 'Razorpay keys not configured on the server' });
+  }
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
     return res.status(400).json({ verified: false, error: 'missing fields' });
   }
