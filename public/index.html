@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CareCompass — Personalized care tour plans</title>
-  <meta name="description" content="CareCompass creates personalized care tour plans — structured, expert-reviewed plans that map out the visits, providers and logistics for a loved one's care journey." />
+  <title>CareCompass — Learn to build care tour plans</title>
+  <meta name="description" content="A self-paced online course that teaches you how to build care tour plans — mapping visits, providers, logistics and budget into a clear, actionable plan you can build yourself." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,47 +20,47 @@
         Care<span>Compass</span>
       </a>
       <nav class="nav">
-        <a href="/#how">How it works</a>
+        <a href="/#curriculum">What you'll learn</a>
         <a href="/#pricing">Pricing</a>
         <a href="/contact.html">Contact</a>
-        <a class="btn" href="/checkout.html">Get your plan</a>
+        <a class="btn" href="/checkout.html">Enroll now</a>
       </nav>
     </div>
   </header>
 
   <section class="hero">
     <div class="wrap">
-      <span class="eyebrow"><span class="dot"></span> Care planning, made clear</span>
-      <h1>Personalized care tour plans for the people you love</h1>
-      <p class="lead">CareCompass builds a structured, expert-reviewed plan that maps out the visits, providers and logistics of a loved one's care journey — so you always know the next step.</p>
+      <span class="eyebrow"><span class="dot"></span> Self-paced online course</span>
+      <h1>Learn to build care tour plans</h1>
+      <p class="lead">A practical, self-paced course that teaches you how to plan a loved one's care — turning a complex situation into a clear schedule of visits, providers, logistics and budget that you build yourself.</p>
       <div class="cta">
-        <a class="btn" href="/checkout.html">Get your care tour plan</a>
-        <a class="btn ghost" href="/#how">See how it works</a>
+        <a class="btn" href="/checkout.html">Enroll in the course</a>
+        <a class="btn ghost" href="/#curriculum">See what you'll learn</a>
       </div>
     </div>
   </section>
 
-  <section class="block" id="how">
+  <section class="block" id="curriculum">
     <div class="wrap">
       <div class="section-head">
-        <h2>How it works</h2>
-        <p>Three simple steps from "where do we even start" to a plan you can act on.</p>
+        <h2>What you'll learn</h2>
+        <p>Three modules that take you from "where do we even start" to a care tour plan you can build on your own.</p>
       </div>
       <div class="steps">
         <div class="step">
           <div class="num">1</div>
-          <h3>Tell us about the care need</h3>
-          <p>Share the situation, the goals, and any constraints — location, budget, schedule and preferences.</p>
+          <h3>Map the care need</h3>
+          <p>Turn a complex situation into clear goals, constraints and priorities — location, budget, schedule and preferences.</p>
         </div>
         <div class="step">
           <div class="num">2</div>
-          <h3>We build your care tour plan</h3>
-          <p>A personalized plan of visits, providers and logistics, reviewed for clarity and feasibility.</p>
+          <h3>Build the schedule</h3>
+          <p>Sequence visits, providers and logistics into a realistic, workable care tour plan using simple frameworks.</p>
         </div>
         <div class="step">
           <div class="num">3</div>
-          <h3>Receive it online &amp; adjust</h3>
-          <p>Your plan is delivered to your account, ready to act on — with adjustments as needs change.</p>
+          <h3>Budget &amp; adapt</h3>
+          <p>Cost it out, plan for contingencies, and learn to adjust the plan confidently as needs change.</p>
         </div>
       </div>
     </div>
@@ -69,20 +69,20 @@
   <section class="block alt" id="pricing">
     <div class="wrap">
       <div class="section-head">
-        <h2>Simple pricing</h2>
-        <p>One flat fee per personalized care tour plan. No subscriptions, no hidden charges.</p>
+        <h2>Course pricing</h2>
+        <p>One-time enrollment. Lifetime access to all lessons and templates — no subscription.</p>
       </div>
       <div class="price-card">
-        <div class="plan">Care Tour Plan</div>
+        <div class="plan">Full Course</div>
         <div class="amount" id="price-amount">$2.00</div>
-        <div class="per">per personalized plan</div>
+        <div class="per">one-time · lifetime access</div>
         <ul>
-          <li>Personalized, expert-reviewed care plan</li>
-          <li>Visit, provider &amp; logistics schedule</li>
-          <li>Delivered online to your account</li>
-          <li>One round of adjustments included</li>
+          <li>All self-paced video &amp; written lessons</li>
+          <li>Downloadable plan templates &amp; checklists</li>
+          <li>Lifetime access, including updates</li>
+          <li>Learn at your own pace, on any device</li>
         </ul>
-        <a class="btn" href="/checkout.html" style="width:100%">Get started</a>
+        <a class="btn" href="/checkout.html" style="width:100%">Enroll now</a>
       </div>
     </div>
   </section>
@@ -91,7 +91,7 @@
     <div class="wrap">
       <div class="entity">
         <strong>DREAMPORT TECHNOLOGY PRIVATE LIMITED</strong><br />
-        CareCompass is a service operated by DREAMPORT TECHNOLOGY PRIVATE LIMITED.<br />
+        CareCompass is an educational service operated by DREAMPORT TECHNOLOGY PRIVATE LIMITED.<br />
         © 2026 DREAMPORT TECHNOLOGY PRIVATE LIMITED. All rights reserved.
       </div>
       <div class="links">
@@ -105,8 +105,7 @@
   </footer>
 
   <script>
-    // Keep the displayed price in sync with the actual charge (server AMOUNT) —
-    // so the page and the bill can never disagree.
+    // Keep the displayed price in sync with the actual charge (server AMOUNT).
     fetch('/price').then((r) => r.json()).then(({ amount, currency }) => {
       document.getElementById('price-amount').textContent =
         (amount / 100).toLocaleString(undefined, { style: 'currency', currency });
