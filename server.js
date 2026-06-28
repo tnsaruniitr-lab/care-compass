@@ -12,6 +12,7 @@ const {
   RZP_KEY_ID,
   RZP_KEY_SECRET,
   RZP_WEBHOOK_SECRET, // the secret you set when creating the webhook in Razorpay
+  CARECOMPASS_VERIFY_TOKEN, // optional bearer token to protect GET /api/status
   PORT = 3000,
   CURRENCY = 'USD', // MUST be non-INR — INR hides Apple Pay
   AMOUNT = '200',   // smallest currency unit; 200 = $2.00
@@ -24,6 +25,21 @@ if (!configured) {
 
 // Built lazily so a missing key never crashes boot (the SDK throws on construction).
 const razorpay = configured ? new Razorpay({ key_id: RZP_KEY_ID, key_secret: RZP_KEY_SECRET }) : null;
+
+// In-memory payment store so a third-party site (e.g. astromatch) can verify a
+// payment by its `ref`. NOTE: resets on restart and is NOT multi-instance safe —
+// use a DB/Redis in production. Keyed by Razorpay order id, indexed by ref.
+const ordersById = new Map();   // order_id -> record
+const orderIdByRef = new Map(); // ref      -> order_id (latest)
+function recordOrder(rec) {
+  ordersById.set(rec.order_id, rec);
+  if (rec.ref) orderIdByRef.set(rec.ref, rec.order_id);
+}
+function markPaid(order_id, payment_id) {
+  const rec = ordersById.get(order_id);
+  if (rec) { rec.paid = true; rec.status = 'paid'; rec.payment_id = payment_id || rec.payment_id; }
+  return rec;
+}
 
 const app = express();
 
@@ -51,7 +67,8 @@ app.post('/webhook', express.raw({ type: '*/*' }), (req, res) => {
 
   if (event.event === 'payment.captured' || event.event === 'order.paid') {
     const p = event.payload?.payment?.entity;
-    // ✅ FULFIL HERE — grant access / email the care plan. This is the reliable path.
+    // ✅ Authoritative fulfilment — mark the order paid so /api/status reports it.
+    if (p?.order_id) markPaid(p.order_id, p.id);
     console.log(`✅ ${event.event}: payment ${p?.id}, order ${p?.order_id}, ${p?.amount} ${p?.currency}`);
   }
   res.json({ ok: true });
@@ -81,16 +98,22 @@ app.get('/.well-known/apple-developer-merchantid-domain-association', (_req, res
 /* ---------------------------------------------------------------------------
  * 2) Create a USD order. The key_secret lives ONLY here, never in the browser.
  * ------------------------------------------------------------------------- */
-app.post('/create-order', async (_req, res) => {
+app.post('/create-order', async (req, res) => {
   if (!razorpay) {
     return res.status(503).json({ error: 'Razorpay keys not configured on the server' });
   }
+  // A third-party site (astromatch) can pass these so the payment can be looked up later.
+  const ref = String(req.body?.ref || '');
+  const product = String(req.body?.product || '');
+  const client_reference_id = String(req.body?.client_reference_id || '');
   try {
     const order = await razorpay.orders.create({
       amount: Number(AMOUNT),
       currency: CURRENCY,
       receipt: `cc_${Date.now()}`,
+      notes: { ref, product, client_reference_id },
     });
+    recordOrder({ order_id: order.id, ref, product, client_reference_id, amount: order.amount, currency: order.currency, paid: false, status: 'created', payment_id: null });
     // Hand the public key_id to the client so it isn't hard-coded in the page.
     res.json({ id: order.id, amount: order.amount, currency: order.currency, key_id: RZP_KEY_ID });
   } catch (err) {
@@ -116,7 +139,38 @@ app.post('/verify-payment', (req, res) => {
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
   const verified = expected === razorpay_signature;
+  if (verified) markPaid(razorpay_order_id, razorpay_payment_id); // immediate; webhook re-confirms
   res.status(verified ? 200 : 400).json({ verified });
+});
+
+/* ---------------------------------------------------------------------------
+ * Payment status by ref — a third-party site (astromatch) points its
+ * CARECOMPASS_VERIFY_URL here and reads `paid` to grant entitlement.
+ * Optional bearer auth: set CARECOMPASS_VERIFY_TOKEN and send it as
+ * `Authorization: Bearer <token>` (or ?token=<token>).
+ * ------------------------------------------------------------------------- */
+app.get('/api/status', (req, res) => {
+  if (CARECOMPASS_VERIFY_TOKEN) {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : req.query.token;
+    if (token !== CARECOMPASS_VERIFY_TOKEN) return res.status(401).json({ error: 'unauthorized' });
+  }
+  const ref = String(req.query.ref || '');
+  const orderId = orderIdByRef.get(ref);
+  const rec = orderId ? ordersById.get(orderId) : null;
+  if (!rec) return res.json({ found: false, paid: false, ref });
+  res.json({
+    found: true,
+    paid: !!rec.paid,
+    status: rec.status,
+    ref: rec.ref,
+    client_reference_id: rec.client_reference_id || null,
+    product: rec.product || null,
+    payment_id: rec.payment_id || null,
+    order_id: rec.order_id,
+    amount: rec.amount,
+    currency: rec.currency,
+  });
 });
 
 // Public pricing — single source of truth so the landing page and the actual

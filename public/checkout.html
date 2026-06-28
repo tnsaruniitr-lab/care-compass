@@ -58,8 +58,8 @@
       <p class="ck-eyebrow"><span class="dot"></span> Secure checkout</p>
       <div class="ck-item">
         <div>
-          <div class="name">Care Tour Planning Course</div>
-          <div class="desc">Self-paced · lifetime access</div>
+          <div class="name" id="item-name">Care Tour Planning Course</div>
+          <div class="desc" id="item-desc">Self-paced · lifetime access</div>
         </div>
         <div class="name" id="lineprice">$2.00</div>
       </div>
@@ -106,19 +106,46 @@
     const setStatus = (html, cls) => { $('status').innerHTML = html; $('status').className = 'status ' + (cls || ''); };
     const fmt = (minor, ccy) => (minor / 100).toLocaleString(undefined, { style: 'currency', currency: ccy });
 
+    // ---- Redirect / reference params passed by a third-party page (astromatch) ----
+    const q = new URLSearchParams(location.search);
+    const RETURN_URL = q.get('return_url') || q.get('redirect_url') || q.get('redirect') || q.get('success_url') || '';
+    const REF = q.get('ref') || q.get('client_reference_id') || '';
+    const CLIENT_REF = q.get('client_reference_id') || '';
+    const PRODUCT = q.get('product') || '';
+    const TITLE = q.get('title') || '';
+    const humanize = (s) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const ITEM_NAME = TITLE || (PRODUCT ? humanize(PRODUCT) : 'Care Tour Planning Course');
+    // Only redirect to http(s) or same-site relative URLs — never javascript:/data: etc.
+    const SAFE_RETURN = /^https?:\/\//i.test(RETURN_URL) || /^\/[^/]/.test(RETURN_URL);
+    if (PRODUCT || TITLE) { $('item-name').textContent = ITEM_NAME; $('item-desc').textContent = 'Digital purchase'; }
+
+    function goBack(status, paymentId) {
+      if (!RETURN_URL || !SAFE_RETURN) return false;
+      const sep = RETURN_URL.includes('?') ? '&' : '?';
+      location.href = RETURN_URL + sep + 'status=' + encodeURIComponent(status) +
+        '&ref=' + encodeURIComponent(REF) + (paymentId ? '&payment_id=' + encodeURIComponent(paymentId) : '');
+      return true;
+    }
+
     async function verify(resp) {
       setStatus('Verifying payment…');
       const v = await fetch('/verify-payment', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(resp),
       }).then((r) => r.json()).catch(() => ({ verified: false }));
-      setStatus(v.verified ? '🎉 Payment confirmed — thank you!' : '⚠️ Captured, but verification failed.', v.verified ? 'ok' : 'err');
       log('payment_id: ' + (resp.razorpay_payment_id || ''));
+      // Hand control back to the originating site (it re-verifies server-side via /api/status).
+      if (v.verified && goBack('success', resp.razorpay_payment_id)) return;
+      setStatus(v.verified ? '🎉 Payment confirmed — thank you!' : '⚠️ Captured, but verification failed.', v.verified ? 'ok' : 'err');
     }
 
     async function init() {
       let order;
       try {
-        order = await fetch('/create-order', { method: 'POST' }).then((r) => r.json());
+        order = await fetch('/create-order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ref: REF, product: PRODUCT, client_reference_id: CLIENT_REF }),
+        }).then((r) => r.json());
       } catch { return setStatus('Couldn’t reach the checkout server.', 'err'); }
       if (!order || order.error || !order.id) {
         return setStatus('Checkout isn’t configured yet — add your <b>live</b> Razorpay keys on the server.', 'err');
@@ -137,7 +164,7 @@
           key: order.key_id,
           order_id: order.id,
           name: 'CareCompass',
-          description: 'Care Tour Planning Course',
+          description: ITEM_NAME,
           prefill: { email: 'buyer@example.com', contact: '9123456789' },
           theme: { color: '#0d9488' },
           // Hide everything EXCEPT card so the checkout isn't wrapped in a
